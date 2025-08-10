@@ -980,7 +980,7 @@ mod probabilistic_grammar {
     #[test]
     fn simple_parse_weighted() {
         let grammar: Grammar = r#"
-            expr   : num                      1 
+            expr   : num                      1
                    | paren                    2
                    | expr symbol expr         3 ;
             paren  : "(" expr symbol expr ")" 4 ;
@@ -1049,7 +1049,7 @@ mod probabilistic_grammar {
     fn allow_leading_zero_weight() {
         // Allow leading zeros to align with Rust's integer parsing behavior
         let _grammar2: Grammar = r#"
-            expr   : num                      1 
+            expr   : num                      1
                    | paren                    0002000
                    | expr symbol expr         3 ;
             paren  : "(" expr symbol expr ")" 4 ;
@@ -1063,7 +1063,7 @@ mod probabilistic_grammar {
     #[test]
     fn zero_weights_not_included() {
         let grammar1: Grammar = r#"
-            expr   : num                      1 
+            expr   : num                      1
                    | paren                    0
                    | expr symbol expr         3 ;
             paren  : "(" expr symbol expr ")" 4 ;
@@ -1139,7 +1139,7 @@ mod probabilistic_grammar {
         // if part of a rule has assigned weights but another doesn't
         let grammar1: Result<Grammar, _> = r#"
             rule1 : branch1         12
-                  | branch1 branch1 
+                  | branch1 branch1
                   | "a"             45
                   | branch1 "a"     881 ;
             branch1 : "b"           1   ;
@@ -1187,7 +1187,10 @@ mod probabilistic_grammar {
 
         assert_eq!(grammar.how_many(None), prob_grammar.how_many(None));
         for depth in 1..=100 {
-            assert_eq!(grammar.how_many(Some(depth)), prob_grammar.how_many(Some(depth)));
+            assert_eq!(
+                grammar.how_many(Some(depth)),
+                prob_grammar.how_many(Some(depth))
+            );
         }
     }
 
@@ -1219,7 +1222,32 @@ mod probabilistic_grammar {
 
         assert_eq!(grammar.how_many(None), prob_grammar.how_many(None));
         for depth in 1..=100 {
-            assert_eq!(grammar.how_many(Some(depth)), prob_grammar.how_many(Some(depth)));
+            assert_eq!(
+                grammar.how_many(Some(depth)),
+                prob_grammar.how_many(Some(depth))
+            );
+        }
+    }
+
+    #[test]
+    fn reject_non_u16_weight() {
+        let grammar: Result<Grammar, _> = r#"
+            rule1 : "a" 65535 ;
+        "#
+        .parse();
+        assert!(grammar.is_ok());
+
+        let grammar: Result<Grammar, _> = r#"
+            rule1 : "a" 65536 ;
+        "#
+        .parse();
+        assert!(grammar.is_err());
+        if let Err(e) = grammar {
+            assert!(
+                e.to_string().contains("can't parse weight to u16"),
+                "Error string: {}",
+                e
+            );
         }
     }
 }

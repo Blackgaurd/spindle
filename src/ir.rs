@@ -11,7 +11,7 @@ pub const MAX_REPEAT: u32 = 255;
 
 /// If `Or` branches are not given weights, then they all default to having the same
 /// weight of 1.
-/// 
+///
 /// If this is ever changed, make sure the value is >= 1, otherwise grammar tests may fail.
 const DEFAULT_WEIGHT: usize = 1;
 
@@ -39,7 +39,12 @@ pub grammar bnf() for str {
         / _ x:concat_inner() __ w:weight() _ { (x, w) }
 
     rule weight() -> WeightType
-        = w:$(['0'..='9']+) {? w.parse().or(Err("can't parse weight to u64")) }
+        = w:$(['0'..='9']+) {?
+            // weights are parsed as u16 to avoid overflow issues when summing weights
+            w.parse::<u16>()
+                .and_then(|v| Ok(v as WeightType))
+                .map_err(|_| "can't parse weight to u16")
+        }
 
     rule concat_inner() -> Expr
         = rep()
