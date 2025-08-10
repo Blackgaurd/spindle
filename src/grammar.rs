@@ -980,12 +980,12 @@ mod probabilistic_grammar {
     #[test]
     fn simple_parse_weighted() {
         let grammar: Grammar = r#"
-            expr   : num                      1
-                   | paren                    2
-                   | expr symbol expr         3 ;
-            paren  : "(" expr symbol expr ")" 4 ;
-            symbol : r"-|\+|\*|÷"             5 ;
-            num    : r"[0-9]+"                6 ;
+            expr   : num                      @1
+                   | paren                    @ 2
+                   | expr symbol expr         @     3 ;
+            paren  : "(" expr symbol expr ")"@ 4 ;
+            symbol : r"-|\+|\*|÷"@5;
+            num    : r"[0-9]+"                @ 6 ;
         "#
         .parse()
         .unwrap();
@@ -1049,12 +1049,12 @@ mod probabilistic_grammar {
     fn allow_leading_zero_weight() {
         // Allow leading zeros to align with Rust's integer parsing behavior
         let _grammar2: Grammar = r#"
-            expr   : num                      1
-                   | paren                    0002000
-                   | expr symbol expr         3 ;
-            paren  : "(" expr symbol expr ")" 4 ;
-            symbol : r"-|\+|\*|÷"             5 ;
-            num    : r"[0-9]+"                6 ;
+            expr   : num                      @ 1
+                   | paren                    @ 0002000
+                   | expr symbol expr         @ 3 ;
+            paren  : "(" expr symbol expr ")" @ 4 ;
+            symbol : r"-|\+|\*|÷"             @ 5 ;
+            num    : r"[0-9]+"                @ 6 ;
         "#
         .parse()
         .unwrap();
@@ -1063,12 +1063,12 @@ mod probabilistic_grammar {
     #[test]
     fn zero_weights_not_included() {
         let grammar1: Grammar = r#"
-            expr   : num                      1
-                   | paren                    0
-                   | expr symbol expr         3 ;
-            paren  : "(" expr symbol expr ")" 4 ;
-            symbol : r"-|\+|\*|÷"             5 ;
-            num    : r"[0-9]+"                6 ;
+            expr   : num                      @ 1
+                   | paren                    @ 0
+                   | expr symbol expr         @ 3 ;
+            paren  : "(" expr symbol expr ")" @ 4 ;
+            symbol : r"-|\+|\*|÷"             @ 5 ;
+            num    : r"[0-9]+"                @ 6 ;
         "#
         .parse()
         .unwrap();
@@ -1076,11 +1076,11 @@ mod probabilistic_grammar {
         assert_grammar_branch_weights(&grammar1, &expected_weights1);
 
         let grammar2: Grammar = r#"
-            rule1 : branch1         0
-                  | branch1 branch1 0
-                  | "a"             766
-                  | branch1 "a"     0   ;
-            branch1 : "b"           1   ;
+            rule1 : branch1         @ 0
+                  | branch1 branch1 @ 0
+                  | "a"             @ 766
+                  | branch1 "a"     @ 0   ;
+            branch1 : "b"           @ 1   ;
         "#
         .parse()
         .unwrap();
@@ -1091,21 +1091,21 @@ mod probabilistic_grammar {
     #[test]
     fn reject_total_weight_is_zero() {
         let grammar1: Result<Grammar, _> = r#"
-            rule1 : branch1         0
-                  | branch1 branch1 0
-                  | "a"             0
-                  | branch1 "a"     0   ;
-            branch1 : "b"           1   ;
+            rule1 : branch1         @ 0
+                  | branch1 branch1 @ 0
+                  | "a"             @ 0
+                  | branch1 "a"     @ 0   ;
+            branch1 : "b"           @ 1   ;
         "#
         .parse();
         assert!(grammar1.is_err());
 
         let grammar2: Result<Grammar, _> = r#"
-            rule1 : branch1         4
-                  | branch1 branch1 3
-                  | "a"             2
-                  | branch1 "a"     1   ;
-            branch1 : "b"           0   ;
+            rule1 : branch1         @ 4
+                  | branch1 branch1 @ 3
+                  | "a"             @ 2
+                  | branch1 "a"     @ 1   ;
+            branch1 : "b"           @ 0   ;
         "#
         .parse();
         assert!(grammar2.is_err());
@@ -1114,21 +1114,21 @@ mod probabilistic_grammar {
     #[test]
     fn reject_negative_weight() {
         let grammar1: Result<Grammar, _> = r#"
-            rule1 : branch1         12
-                  | branch1 branch1 234
-                  | "a"             45
-                  | branch1 "a"     881 ;
-            branch1 : "b"           -1  ;
+            rule1 : branch1         @ 12
+                  | branch1 branch1 @ 234
+                  | "a"             @ 45
+                  | branch1 "a"     @ 881 ;
+            branch1 : "b"           @ -1  ;
         "#
         .parse();
         assert!(grammar1.is_err());
 
         let grammar2: Result<Grammar, _> = r#"
-            rule1 : branch1         12
-                  | branch1 branch1 -234
-                  | "a"             45
-                  | branch1 "a"     881  ;
-            branch1 : "b"           1    ;
+            rule1 : branch1         @ 12
+                  | branch1 branch1 @ -234
+                  | "a"             @ 45
+                  | branch1 "a"     @ 881  ;
+            branch1 : "b"           @ 1    ;
         "#
         .parse();
         assert!(grammar2.is_err());
@@ -1138,21 +1138,21 @@ mod probabilistic_grammar {
     fn reject_mixed_weight_rule() {
         // if part of a rule has assigned weights but another doesn't
         let grammar1: Result<Grammar, _> = r#"
-            rule1 : branch1         12
+            rule1 : branch1         @ 12
                   | branch1 branch1
-                  | "a"             45
-                  | branch1 "a"     881 ;
-            branch1 : "b"           1   ;
+                  | "a"             @ 45
+                  | branch1 "a"     @ 881 ;
+            branch1 : "b"           @ 1   ;
         "#
         .parse();
         assert!(grammar1.is_err());
 
         // but having one branch with weights and another branch without weights is ok
         let grammar2: Grammar = r#"
-            rule1 : branch1         12
-                  | branch1 branch1 7645
-                  | "a"             45
-                  | branch1 "a"     881 ;
+            rule1 : branch1         @ 12
+                  | branch1 branch1 @ 7645
+                  | "a"             @ 45
+                  | branch1 "a"     @ 881 ;
             branch1 : "b"               ;
         "#
         .parse()
@@ -1175,12 +1175,12 @@ mod probabilistic_grammar {
         .unwrap();
 
         let prob_grammar: Grammar = r#"
-            expr   : num              1
-                   | paren            2
-                   | expr symbol expr 3 ;
-            paren  : "(" expr symbol expr ")" 4 ;
-            symbol : r"-|\+|\*|÷" 5 ;
-            num    : r"[0-9]+" 6 ;
+            expr   : num              @ 1
+                   | paren            @ 2
+                   | expr symbol expr @ 3 ;
+            paren  : "(" expr symbol expr ")" @ 4 ;
+            symbol : r"-|\+|\*|÷" @ 5 ;
+            num    : r"[0-9]+" @ 6 ;
         "#
         .parse()
         .unwrap();
@@ -1209,13 +1209,13 @@ mod probabilistic_grammar {
         .unwrap();
 
         let prob_grammar: Grammar = r#"
-            expr   : num              1
-                   | paren            2
-                   | expr             0
-                   | expr symbol expr 3 ;
-            paren  : "(" expr symbol expr ")" 4 ;
-            symbol : r"-|\+|\*|÷" 5 ;
-            num    : r"[0-9]+" 6 ;
+            expr   : num                      @ 1
+                   | paren                    @ 2
+                   | expr                     @ 0
+                   | expr symbol expr         @ 3 ;
+            paren  : "(" expr symbol expr ")" @ 4 ;
+            symbol : r"-|\+|\*|÷"             @ 5 ;
+            num    : r"[0-9]+"                @ 6 ;
         "#
         .parse()
         .unwrap();
@@ -1232,13 +1232,13 @@ mod probabilistic_grammar {
     #[test]
     fn reject_non_u16_weight() {
         let grammar: Result<Grammar, _> = r#"
-            rule1 : "a" 65535 ;
+            rule1 : "a" @ 65535 ;
         "#
         .parse();
         assert!(grammar.is_ok());
 
         let grammar: Result<Grammar, _> = r#"
-            rule1 : "a" 65536 ;
+            rule1 : "a" @ 65536 ;
         "#
         .parse();
         assert!(grammar.is_err());

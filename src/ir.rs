@@ -35,8 +35,8 @@ pub grammar bnf() for str {
         / _ x:concat_inner() _ { x }
 
     rule weighted_branch_inner() -> (Expr, WeightType)
-        = _ x:concat() __ w:weight() _ { (x, w) }
-        / _ x:concat_inner() __ w:weight() _ { (x, w) }
+        = _ x:concat() _ "@" _ w:weight() _ { (x, w) }
+        / _ x:concat_inner() _ "@" _ w:weight() _ { (x, w) }
 
     rule weight() -> WeightType
         = w:$(['0'..='9']+) {?
